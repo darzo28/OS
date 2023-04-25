@@ -1,0 +1,4 @@
+PROG id
+VAR id : foat;
+BEGIN 
+END

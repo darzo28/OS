@@ -1,0 +1,6 @@
+PROG id
+VAR id : int;
+BEGIN
+READ(id);
+WRITE();
+END

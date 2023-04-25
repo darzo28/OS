@@ -1,0 +1,7 @@
+PROG id
+VAR id, id, id : bool;
+BEGIN
+READ(id, id);
+id := id;
+WRITE(id, id);
+END

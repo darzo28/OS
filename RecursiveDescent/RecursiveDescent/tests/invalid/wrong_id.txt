@@ -1,0 +1,4 @@
+PROG id
+VAR it : int;
+BEGIN
+END
