@@ -36,7 +36,7 @@ def print_moore(graph, file):
 
         for from_state, to_state in graph.edges:
             data = graph.get_edge_data(from_state, to_state)
-            signal = data["in_signal"]
+            signal = data['in_signal']
             transitions_matrix[indexed_signals[signal]] \
                 [indexed_states[from_state] + 1] = to_state
         writer.writerows(transitions_matrix)
@@ -47,6 +47,7 @@ def mealy_to_moore(graph):
         return tr[2]['out_signal']
 
     synthetic_i = 0
+    node_count = 0
     dest = nx.DiGraph()
     edges_planned = []
     nodes_map = dict()
@@ -72,6 +73,17 @@ def mealy_to_moore(graph):
             for t in transitions:
                 edges_planned.append((t[0], name, t[2]['in_signal']))
 
+            synthetic_i += 1
+        node_count +=1
+
+        if synthetic_i == 0 and node_count != 0:
+            name = 'q' + str(synthetic_i)
+            dest.add_node(name, out_signal='-')
+
+            chain = nodes_map.get(node, [])
+            chain.append(name)
+            nodes_map[node] = chain
+            
             synthetic_i += 1
 
     for from_state, to_state, signal in edges_planned:
