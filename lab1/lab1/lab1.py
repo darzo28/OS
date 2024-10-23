@@ -2,21 +2,20 @@ import sys
 import csv
 import itertools
 import networkx as nx
-import pygraphviz as pgv
 
 def print_mealy(graph, file):
     with open(file, 'w', newline='\n') as f:
         writer = csv.writer(f, delimiter=';')
-        ordered_states = sorted(list(graph.nodes))
+        ordered_states = list(graph.nodes)
         indexed_states = dict(zip(ordered_states, range(len(ordered_states))))
-        ordered_signals = sorted(list(set(nx.get_edge_attributes(graph, "in_signal").values())))
+        ordered_signals = sorted(list(set(nx.get_edge_attributes(graph, 'in_signal').values())))
         indexed_signals = dict(zip(ordered_signals, range(len(ordered_signals))))
         writer.writerow([''] + ordered_states)
-        transitions_matrix = [[signal] + [""] * len(ordered_states) for signal in ordered_signals]
+        transitions_matrix = [[signal] + [''] * len(ordered_states) for signal in ordered_signals]
 
-        for from_state, to_state in graph.edges:
-            data = graph.get_edge_data(from_state, to_state)
-            in_signal, out_signal = data["in_signal"], data["out_signal"]
+        for from_state, to_state, edge in graph.edges:
+            data = graph.get_edge_data(from_state, to_state, edge)
+            in_signal, out_signal = data['in_signal'], data['out_signal']
             transitions_matrix[indexed_signals[in_signal]] \
                 [indexed_states[from_state] + 1] = to_state + '/' + out_signal
         writer.writerows(transitions_matrix)
@@ -25,17 +24,17 @@ def print_mealy(graph, file):
 def print_moore(graph, file):
     with open(file, 'w', newline='\n') as f:
         writer = csv.writer(f, delimiter=';')
-        ordered_states = sorted(list(graph.nodes))
+        ordered_states = list(graph.nodes)
         indexed_states = dict(zip(ordered_states, range(len(ordered_states))))
         ordered_state_outs = [graph.nodes[node]['out_signal'] for node in ordered_states]
-        ordered_signals = sorted(list(set(nx.get_edge_attributes(graph, "in_signal").values())))
+        ordered_signals = sorted(list(set(nx.get_edge_attributes(graph, 'in_signal').values())))
         indexed_signals = dict(zip(ordered_signals, range(len(ordered_signals))))
         writer.writerow([''] + ordered_state_outs)
         writer.writerow([''] + ordered_states)
-        transitions_matrix = [[signal] + [""] * len(ordered_states) for signal in ordered_signals]
+        transitions_matrix = [[signal] + [''] * len(ordered_states) for signal in ordered_signals]
 
-        for from_state, to_state in graph.edges:
-            data = graph.get_edge_data(from_state, to_state)
+        for from_state, to_state, edge in graph.edges:
+            data = graph.get_edge_data(from_state, to_state, edge)
             signal = data['in_signal']
             transitions_matrix[indexed_signals[signal]] \
                 [indexed_states[from_state] + 1] = to_state
@@ -48,7 +47,7 @@ def mealy_to_moore(graph):
 
     synthetic_i = 0
     node_count = 0
-    dest = nx.DiGraph()
+    dest = nx.MultiDiGraph()
     edges_planned = []
     nodes_map = dict()
 
@@ -93,17 +92,19 @@ def mealy_to_moore(graph):
 
 
 def moore_to_mealy(graph):
-    dest = nx.DiGraph()
-    for from_state, to_state in graph.edges:
-        data = graph.get_edge_data(from_state, to_state)
+    dest = nx.MultiDiGraph()
+    dest.add_nodes_from(graph.nodes)
+    for from_state, to_state, edge in graph.edges:
+        data = graph.get_edge_data(from_state, to_state, edge)
         dest.add_edge(from_state, to_state, in_signal=data['in_signal'], out_signal=graph.nodes[to_state]['out_signal'])
     return dest
 
 def read_mealy(file):
     with open(file, newline='\n') as f:
         reader = csv.reader(f, delimiter=';')
-        graph = nx.DiGraph()
+        graph = nx.MultiDiGraph()
         states = reader.__next__()[1:]
+        graph.add_nodes_from(states)
         for line in reader:
             in_signal = line[0]  
             transitions = line[1:]
@@ -116,7 +117,7 @@ def read_mealy(file):
 def read_moore(file):
     with open(file, newline='\n') as f:
         reader = csv.reader(f, delimiter=';')
-        graph = nx.DiGraph()
+        graph = nx.MultiDiGraph()
         out_signals = reader.__next__()[1:]
         states = reader.__next__()[1:]
         for state, out_signal in zip(states, out_signals):
