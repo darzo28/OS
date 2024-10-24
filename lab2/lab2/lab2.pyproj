@@ -11,6 +11,9 @@
     <OutputPath>.</OutputPath>
     <Name>lab2</Name>
     <RootNamespace>lab2</RootNamespace>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>mealy input2.csv output2.csv</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
