@@ -2,11 +2,16 @@ import sys
 import csv
 import itertools
 import networkx as nx
+from enum import Enum
 
 DELIMITER = '/'
 EMPTY = '-'
 IN_SIGNAL = 'in_signal'
 OUT_SIGNAL = 'out_signal'
+
+class Types(str, Enum):
+    Mealy = 'mealy'
+    Moore = 'moore'
 
 def print_mealy(graph, file):
     with open(file, 'w', newline='\n') as f:
@@ -171,11 +176,11 @@ if __name__ == '__main__':
     if len(args) != 3:
         exit_help()
 
-    if args[0] == 'mealy':
+    if args[0] == Types.Mealy.value:
         mealy = mealy_minimize(read_mealy(args[1]))
         print_mealy(mealy, args[2])
         print('Mealy minimization completed')
-    elif args[0] == 'moore':
+    elif args[0] == Types.Moore.value:
         moore = moore_minimize(read_moore(args[1]))
         print_moore(moore, args[2])
         print('Moore minimization completed')
