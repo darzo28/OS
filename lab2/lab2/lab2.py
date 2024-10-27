@@ -1,6 +1,5 @@
 import sys
 import csv
-import itertools
 import networkx as nx
 from enum import Enum
 
@@ -49,16 +48,33 @@ def print_moore(graph, file):
                 [indexed_states[from_state] + 1] = to_state
         writer.writerows(transitions_matrix)
 
+def remove_unreachable(old_graph, new_graph, current_state, option):
+    if option == Types.Mealy.value:
+        new_graph.add_node(current_state)
+    else:
+        new_graph.add_node(current_state, out_signal=dict(old_graph.nodes)[current_state][OUT_SIGNAL])
+    for neighbor in list(old_graph.successors(current_state)):
+        if neighbor not in list(new_graph.nodes):
+            remove_unreachable(old_graph, new_graph, neighbor, option)
+        for edge in old_graph.get_edge_data(current_state, neighbor).values():
+            if option == Types.Mealy.value:
+                new_graph.add_edge(current_state, neighbor, in_signal=edge[IN_SIGNAL], out_signal=edge[OUT_SIGNAL])
+            else:
+                new_graph.add_edge(current_state, neighbor, in_signal=edge[IN_SIGNAL])
+
 def minimize(graph, partitions):
     while True:
         new_partitions = []
         for partition in partitions:
             groups = {}
             for state in partition:
-                key = tuple(
-                    tuple(next((partition for partition in partitions if neighbor in partition)))
-                    for neighbor in list(graph.successors(state))
-                )
+                key = []
+                for neighbor in list(graph.successors(state)):
+                    key.extend(list(
+                        tuple(next((partition for partition in partitions if neighbor in partition)))
+                        for signal in graph.get_edge_data(state, neighbor).values()
+                    ))
+                key = tuple(key)
                 
                 if key not in groups:
                     groups[key] = []
@@ -73,6 +89,11 @@ def minimize(graph, partitions):
     return partitions
 
 def mealy_minimize(graph):
+    new_graph = nx.MultiDiGraph()
+    start_state = list(graph.nodes)[0]
+    remove_unreachable(graph, new_graph, start_state, Types.Mealy.value)
+    graph = new_graph
+    
     states = list(graph.nodes)
 
     groups = {}
@@ -89,7 +110,7 @@ def mealy_minimize(graph):
 
     partitions = list(groups.values())
 
-    new_partitions = minimize(graph, partitions)
+    new_partitions = minimize(graph, partitions) if len(partitions) != 1 else partitions
 
     minimized_graph = nx.MultiDiGraph()
     state_mapping = {state: f'q{i}' for i, partition in enumerate(new_partitions) for state in partition}
@@ -107,6 +128,11 @@ def mealy_minimize(graph):
     return minimized_graph    
 
 def moore_minimize(graph):
+    new_graph = nx.MultiDiGraph()
+    start_state = list(graph.nodes)[0]
+    remove_unreachable(graph, new_graph, start_state, Types.Moore.value)
+    graph = new_graph
+    
     output_signals = {node: graph.nodes[node][OUT_SIGNAL] for node in list(graph.nodes)}    
     ordered_signals = []
     for signal in list(output_signals.values()):
@@ -114,7 +140,7 @@ def moore_minimize(graph):
             ordered_signals.append(signal)
     partitions = [[node[0] for node in graph.nodes(data=True) if node[1][OUT_SIGNAL] == output] for output in ordered_signals]
 
-    new_partitions = minimize(graph, partitions)
+    new_partitions = minimize(graph, partitions) if len(partitions) != 1 else partitions
 
     minimized_graph = nx.MultiDiGraph()
     state_mapping = {state: f'q{i}' for i, partition in enumerate(new_partitions) for state in partition}

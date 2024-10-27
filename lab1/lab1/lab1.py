@@ -2,11 +2,16 @@ import sys
 import csv
 import itertools
 import networkx as nx
+from enum import Enum
 
 DELIMITER = '/'
 EMPTY = '-'
 IN_SIGNAL = 'in_signal'
 OUT_SIGNAL = 'out_signal'
+
+class Types(str, Enum):
+    Mealy = 'mealy'
+    Moore = 'moore'
 
 def print_mealy(graph, file):
     with open(file, 'w', newline='\n') as f:
@@ -44,7 +49,26 @@ def print_moore(graph, file):
                 [indexed_states[from_state] + 1] = to_state
         writer.writerows(transitions_matrix)
 
+def remove_unreachable(old_graph, new_graph, current_state, option):
+    if option == Types.Mealy.value:
+        new_graph.add_node(current_state)
+    else:
+        new_graph.add_node(current_state, out_signal=dict(old_graph.nodes)[current_state][OUT_SIGNAL])
+    for neighbor in list(old_graph.successors(current_state)):
+        if neighbor not in list(new_graph.nodes):
+            remove_unreachable(old_graph, new_graph, neighbor, option)
+        for edge in old_graph.get_edge_data(current_state, neighbor).values():
+            if option == Types.Mealy.value:
+                new_graph.add_edge(current_state, neighbor, in_signal=edge[IN_SIGNAL], out_signal=edge[OUT_SIGNAL])
+            else:
+                new_graph.add_edge(current_state, neighbor, in_signal=edge[IN_SIGNAL])
+
 def mealy_to_moore(graph):
+    new_graph = nx.MultiDiGraph()
+    start_state = list(graph.nodes)[0]
+    remove_unreachable(graph, new_graph, start_state, Types.Mealy.value)
+    graph = new_graph
+    
     def get_transition_out_signal(tr):
         return tr[2][OUT_SIGNAL]
 
@@ -94,6 +118,11 @@ def mealy_to_moore(graph):
     return dest
 
 def moore_to_mealy(graph):
+    new_graph = nx.MultiDiGraph()
+    start_state = list(graph.nodes)[0]
+    remove_unreachable(graph, new_graph, start_state, Types.Moore.value)
+    graph = new_graph
+
     dest = nx.MultiDiGraph()
     dest.add_nodes_from(graph.nodes)
     for from_state, to_state, edge in graph.edges:
