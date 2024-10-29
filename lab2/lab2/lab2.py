@@ -71,10 +71,10 @@ def minimize(graph, partitions):
                 key = []
                 for neighbor in list(graph.successors(state)):
                     key.extend(list(
-                        tuple(next((partition for partition in partitions if neighbor in partition)))
+                        [signal[IN_SIGNAL], tuple(next((partition for partition in partitions if neighbor in partition)))]
                         for signal in graph.get_edge_data(state, neighbor).values()
                     ))
-                key = tuple(key)
+                key = tuple([transition[1] for transition in sorted(key)])
                 
                 if key not in groups:
                     groups[key] = []
@@ -89,6 +89,9 @@ def minimize(graph, partitions):
     return partitions
 
 def mealy_minimize(graph):
+    def get_transition_in_signal(tr):
+        return tr[IN_SIGNAL]
+
     new_graph = nx.MultiDiGraph()
     start_state = list(graph.nodes)[0]
     remove_unreachable(graph, new_graph, start_state, Types.Mealy.value)
@@ -100,10 +103,10 @@ def mealy_minimize(graph):
     for state in states:
         key = []
         for neighbor in list(graph.successors(state)):
-            k = [signal[OUT_SIGNAL] for signal in graph.get_edge_data(state, neighbor).values()]
+            k = [signal for signal in graph.get_edge_data(state, neighbor).values()]
             key.extend(k)
 
-        key = tuple(key)
+        key = tuple([signal[OUT_SIGNAL] for signal in sorted(key, key=get_transition_in_signal)])
         if key not in groups:
             groups[key] = []
         groups[key].append(state)
