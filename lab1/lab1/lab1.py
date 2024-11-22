@@ -114,7 +114,7 @@ def mealy_to_moore(graph):
 
     for from_state, to_state, signal in edges_planned:
         for node in nodes_map[from_state]:
-            dest.add_edge(node, to_state, in_signal=signal)
+            dest.add_edge(to_state, node, in_signal=signal) # dest.add_edge(node, to_state, in_signal=signal)
     return dest
 
 def moore_to_mealy(graph):
@@ -127,7 +127,7 @@ def moore_to_mealy(graph):
     dest.add_nodes_from(graph.nodes)
     for from_state, to_state, edge in graph.edges:
         data = graph.get_edge_data(from_state, to_state, edge)
-        dest.add_edge(from_state, to_state, in_signal=data[IN_SIGNAL], out_signal=graph.nodes[to_state][OUT_SIGNAL])
+        dest.add_edge(to_state, from_state, in_signal=data[IN_SIGNAL], out_signal=graph.nodes[to_state][OUT_SIGNAL]) # dest.add_edge(from_state, to_state, in_signal=data[IN_SIGNAL], out_signal=graph.nodes[to_state][OUT_SIGNAL])
     return dest
 
 def read_mealy(file):
