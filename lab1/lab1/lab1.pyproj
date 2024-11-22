@@ -12,7 +12,7 @@
     <Name>lab1</Name>
     <RootNamespace>lab1</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>mealy-to-moore input3.csv output3.csv</CommandLineArguments>
+    <CommandLineArguments>mealy-to-moore mealy_1.csv moore_1.csv</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
