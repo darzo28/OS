@@ -27,7 +27,7 @@ def print_mealy(graph, file):
             data = graph.get_edge_data(from_state, to_state, edge)
             in_signal, out_signal = data[IN_SIGNAL], data[OUT_SIGNAL]
             transitions_matrix[indexed_signals[in_signal]] \
-                [indexed_states[from_state] + 1] = f'{to_state}{DELIMITER}{out_signal}'
+                [indexed_states[from_state] + 1] = f'{ordered_states[(indexed_states[to_state] + 1) % len(ordered_states)]}{DELIMITER}{out_signal}'
         writer.writerows(transitions_matrix)
 
 def print_moore(graph, file):
@@ -46,7 +46,7 @@ def print_moore(graph, file):
             data = graph.get_edge_data(from_state, to_state, edge)
             signal = data[IN_SIGNAL]
             transitions_matrix[indexed_signals[signal]] \
-                [indexed_states[from_state] + 1] = to_state
+                [indexed_states[from_state] + 1] = ordered_states[(indexed_states[to_state] + 1) % len(ordered_states)]
         writer.writerows(transitions_matrix)
 
 def remove_unreachable(old_graph, new_graph, current_state, option):
@@ -114,7 +114,7 @@ def mealy_to_moore(graph):
 
     for from_state, to_state, signal in edges_planned:
         for node in nodes_map[from_state]:
-            dest.add_edge(to_state, node, in_signal=signal) # dest.add_edge(node, to_state, in_signal=signal)
+            dest.add_edge(node, to_state, in_signal=signal)
     return dest
 
 def moore_to_mealy(graph):
@@ -127,7 +127,7 @@ def moore_to_mealy(graph):
     dest.add_nodes_from(graph.nodes)
     for from_state, to_state, edge in graph.edges:
         data = graph.get_edge_data(from_state, to_state, edge)
-        dest.add_edge(to_state, from_state, in_signal=data[IN_SIGNAL], out_signal=graph.nodes[to_state][OUT_SIGNAL]) # dest.add_edge(from_state, to_state, in_signal=data[IN_SIGNAL], out_signal=graph.nodes[to_state][OUT_SIGNAL])
+        dest.add_edge(from_state, to_state, in_signal=data[IN_SIGNAL], out_signal=graph.nodes[to_state][OUT_SIGNAL])
     return dest
 
 def read_mealy(file):
