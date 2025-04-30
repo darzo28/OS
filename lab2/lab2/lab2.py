@@ -13,7 +13,7 @@ class Types(str, Enum):
     Moore = 'moore'
 
 def print_mealy(graph, file):
-    with open(file, 'w', newline='\n') as f:
+    with open(file, 'w', newline='\n', encoding='utf-8') as f:
         writer = csv.writer(f, delimiter=';')
         ordered_states = list(graph.nodes)
         indexed_states = dict(zip(ordered_states, range(len(ordered_states))))
@@ -30,11 +30,11 @@ def print_mealy(graph, file):
         writer.writerows(transitions_matrix)
 
 def print_moore(graph, file):
-    with open(file, 'w', newline='\n') as f:
+    with open(file, 'w', newline='\n', encoding='utf-8') as f:
         writer = csv.writer(f, delimiter=';')
         ordered_states = list(graph.nodes)
         indexed_states = dict(zip(ordered_states, range(len(ordered_states))))
-        ordered_state_outs = [graph.nodes[node][OUT_SIGNAL] for node in ordered_states]
+        ordered_state_outs = ['' if graph.nodes[node][OUT_SIGNAL] == EMPTY else graph.nodes[node][OUT_SIGNAL] for node in ordered_states]
         ordered_signals = sorted(list(set(nx.get_edge_attributes(graph, IN_SIGNAL).values())))
         indexed_signals = dict(zip(ordered_signals, range(len(ordered_signals))))
         writer.writerow([''] + ordered_state_outs)
@@ -164,7 +164,7 @@ def moore_minimize(graph):
     return minimized_graph
 
 def read_mealy(file):
-    with open(file, newline='\n') as f:
+    with open(file, newline='\n', encoding='utf-8') as f:
         reader = csv.reader(f, delimiter=';')
         graph = nx.MultiDiGraph()
         states = [EMPTY if state == '' else state for state in reader.__next__()[1:]]
@@ -181,7 +181,7 @@ def read_mealy(file):
 
 
 def read_moore(file):
-    with open(file, newline='\n') as f:
+    with open(file, newline='\n', encoding='utf-8') as f:
         reader = csv.reader(f, delimiter=';')
         graph = nx.MultiDiGraph()
         out_signals = [EMPTY if signal == '' else signal for signal in reader.__next__()[1:]]
@@ -192,7 +192,8 @@ def read_moore(file):
             in_signal = line[0]
             to_states = [EMPTY if state == '' else state for state in line[1:]]
             for from_state, to_state in zip(states, to_states):
-                graph.add_edge(from_state, to_state, in_signal=in_signal)
+                if to_state != EMPTY:
+                    graph.add_edge(from_state, to_state, in_signal=in_signal)
         return graph
 
 def exit_help():
