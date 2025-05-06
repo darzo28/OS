@@ -1,0 +1,3 @@
+dispatcher: python3.13
+script: lab5/lab5/lab5.py
+requirementsFile: requirements.txt

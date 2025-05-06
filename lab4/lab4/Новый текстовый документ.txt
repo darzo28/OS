@@ -1,0 +1,129 @@
+import sys
+import csv
+import networkx as nx
+from collections import deque
+
+EMPTY = '-'
+EMPTY_IN_SIGNAL = 'ε'
+IN_SIGNAL = 'in_signal'
+OUT_SIGNAL = 'out_signal'
+
+def read_moore(file):
+    with open(file, newline='\n', encoding='utf-8') as f:
+        reader = csv.reader(f, delimiter=';')
+        graph = nx.MultiDiGraph()
+        out_signals = [EMPTY if signal == '' else signal for signal in reader.__next__()[1:]]
+        states = [EMPTY if state == '' else state for state in reader.__next__()[1:]]
+        for state, out_signal in zip(states, out_signals):
+            graph.add_node(state, out_signal=out_signal)
+        for line in reader:
+            in_signal = line[0]
+            to_states = [EMPTY if state == '' else state for state in line[1:]]
+            for from_state, to_state in zip(states, to_states):
+                for state in to_state.split(','):
+                    if state != EMPTY:
+                        graph.add_edge(from_state, state, in_signal=in_signal)
+        return graph
+
+def get_reachable_states(nfa, state, signal):
+    reachable_states = set()
+    for next_state in nfa.successors(state):
+        edge_data = nfa.get_edge_data(state, next_state)
+        if any(edge[IN_SIGNAL] == signal for edge in edge_data.values()):
+            reachable_states.add(next_state)
+    return reachable_states
+
+def get_eps_closure(nfa, states, eps_closure):
+    next_states = set()
+    reachable_states = set()
+
+    for state in states:
+        if state not in eps_closure:
+            eps_closure.add(state)
+
+        next_states = get_reachable_states(nfa, state, EMPTY_IN_SIGNAL)
+        if len(next_states) > 0:
+            eps_closure.update(next_states)
+            reachable_states.update(next_states)
+
+    if len(next_states) > 0:
+        return get_eps_closure(nfa, reachable_states, eps_closure)
+    else:
+        return eps_closure
+
+def epsilon_closure(nfa, states):
+    return get_eps_closure(nfa, states, set())
+
+def move(nfa, states, signal):
+    reachable_states = set()
+    for state in states:
+        next_states = get_reachable_states(nfa, state, signal)
+        if len(next_states) > 0:
+            reachable_states.update(next_states)
+    return reachable_states
+
+def determine(nfa):
+    dfa = nx.MultiDiGraph()
+    
+    next_states = set()
+    curr_states = set()
+    start_state = list(nfa.nodes)[0]
+    queue = deque({start_state})
+    
+    while len(queue) > 0:
+        curr_states = {queue.popleft()}
+        curr_states.update(epsilon_closure(nfa, curr_states))
+        
+        for signal in set(nx.get_edge_attributes(nfa, IN_SIGNAL).values()):
+            if signal == EMPTY_IN_SIGNAL:
+                continue
+            next_states = move(nfa, curr_states, signal)
+            eps_closure = epsilon_closure(nfa, next_states)
+
+            if not eps_closure.issubset(set(dfa.nodes)):
+                queue.append(next_states)
+                for state in sorted(list(eps_closure)):
+                    dfa.add_node(state, out_signal=nfa.nodes[node][OUT_SIGNAL]) 
+                
+            if len(next_states) > 0:
+                for from_state in curr_states:
+                    for to_state in nfa.successors(from_state):
+                        edge_data = nfa.get_edge_data(from_state, to_state)
+                        if any(edge[IN_SIGNAL] == signal for edge in edge_data.values()):
+                            dfa.add_edge(from_state, to_state, in_signal=signal)
+    return dfa
+
+def print_moore(graph, file):
+    with open(file, 'w', newline='\n', encoding='utf-8') as f:
+        writer = csv.writer(f, delimiter=';')
+        ordered_states = list(graph.nodes)
+        indexed_states = dict(zip(ordered_states, range(len(ordered_states))))
+        ordered_state_outs = ['' if graph.nodes[node][OUT_SIGNAL] == EMPTY else graph.nodes[node][OUT_SIGNAL] for node in ordered_states]
+        ordered_signals = sorted(list(set(nx.get_edge_attributes(graph, IN_SIGNAL).values())))
+        indexed_signals = dict(zip(ordered_signals, range(len(ordered_signals))))
+        writer.writerow([''] + ordered_state_outs)
+        writer.writerow([''] + ordered_states)
+        transitions_matrix = [[signal] + [''] * len(ordered_states) for signal in ordered_signals]
+
+        for from_state, to_state, edge in graph.edges:
+            data = graph.get_edge_data(from_state, to_state, edge)
+            signal = data[IN_SIGNAL]
+            state = transitions_matrix[indexed_signals[signal]] \
+                [indexed_states[from_state] + 1]
+            transitions_matrix[indexed_signals[signal]] \
+                [indexed_states[from_state] + 1] = to_state if state == '' else f'{state},{to_state}'
+        writer.writerows(transitions_matrix)
+
+def exit_help():
+    print('lab4.py <input filename> <output filename>')
+    sys.exit(0)
+
+if __name__ == '__main__':
+    args = sys.argv[1:]
+
+    if len(args) != 2:
+        exit_help()
+
+    moore = determine(read_moore(args[0]))
+    print_moore(moore, args[1])
+    print('Determination completed')
