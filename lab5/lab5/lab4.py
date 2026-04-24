@@ -73,7 +73,7 @@ def eps_closure(state, transitions):
     return list(eTransitions)
 
 
-def determine(original, states, terminals, transitions):
+def det(original, states, terminals, transitions):
     dfaTerminals = []
 
     dfaTerminals = [t for t in terminals if t != EMPTY_IN_SIGNAL and t not in dfaTerminals]
@@ -126,6 +126,11 @@ def determine(original, states, terminals, transitions):
 
     return result
 
+def determine(nfa, file):
+    states, terminals, transitions = get_graph(nfa)
+    result = det(nfa, states, terminals, transitions)
+    print_graph(result, file)
+
 def exit_help():
     print('lab4.py <input filename> <output filename>')
     sys.exit(0)
@@ -137,6 +142,4 @@ if __name__ == '__main__':
         exit_help()
 
     original = read_graph(args[0])
-    states, terminals, transitions = get_graph(original)
-    result = determine(original, states, terminals, transitions)
-    print_graph(args[1], result)
+    determine(original, args[1])

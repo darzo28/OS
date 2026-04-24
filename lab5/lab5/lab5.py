@@ -109,7 +109,6 @@ def regexToNFA(regex):
     precedence = {"*": 4, "+": 3, ".": 2, "|": 1}
     regex = addConcatenationOperators(regex).replace('e', EMPTY_IN_SIGNAL)
 
-    print(regex)
     for ch in regex:
         if ch.isalnum():
             makeNFA(ch)
@@ -162,7 +161,6 @@ def makeResult(nfa):
 
     dfs(nfa.start)
 
-    print(finalStates)
     terminals = sorted(terminals)
     states = sorted(states)
 
@@ -184,11 +182,6 @@ def makeResult(nfa):
                 result[terminal_idx][state_idx] = f"q{next_state}"
             else:
                 result[terminal_idx][state_idx] += f",q{next_state}"
-
-    print()
-    for line in result:
-        print(';'.join(line))
-    print()
 
     return result
 
